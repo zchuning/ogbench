@@ -1,3 +1,7 @@
+import os
+
+_THIS_DIR = os.path.dirname(__file__)              # .../site-packages/ogbench/locomaze
+
 from gymnasium.envs.registration import register
 
 visual_dict = dict(
@@ -50,6 +54,16 @@ register(
         loco_env_type='point',
         maze_env_type='maze',
         maze_type='teleport',
+    ),
+)
+
+register(
+    id='pointmaze-random-v0',
+    entry_point="ogbench.locomaze.rand_maze:make_rand_maze_env",
+    max_episode_steps=1000,
+    kwargs=dict(
+        loco_env_type='point',
+        maze_map_dir=os.path.abspath(os.path.join(_THIS_DIR, '../..', 'rand_mazes/medium')),
     ),
 )
 
