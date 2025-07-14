@@ -45,6 +45,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             reward_task_id=None,
             use_oracle_rep=False,
             mark_goal=True,
+            recolor_pixel_ob=False,
             *args,
             **kwargs,
         ):
@@ -74,6 +75,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             self._reward_task_id = reward_task_id
             self._use_oracle_rep = use_oracle_rep
             self._mark_goal = mark_goal
+            self._recolor_pixel_ob = recolor_pixel_ob
             assert ob_type in ['states', 'pixels']
 
             # Define constants.
@@ -130,20 +132,21 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                 self.observation_space = Box(low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8)
 
                 # Manually color the floor to enable the agent to infer its position from the observation.
-                tex_grid = self.model.tex('grid')
-                tex_height = tex_grid.height[0]
-                tex_width = tex_grid.width[0]
-                # MuJoCo 3.2.1 changed the attribute name from 'tex_rgb' to 'tex_data'.
-                attr_name = 'tex_rgb' if hasattr(self.model, 'tex_rgb') else 'tex_data'
-                tex_rgb = getattr(self.model, attr_name)[tex_grid.adr[0] : tex_grid.adr[0] + 3 * tex_height * tex_width]
-                tex_rgb = tex_rgb.reshape(tex_height, tex_width, 3)
-                for x in range(tex_height):
-                    for y in range(tex_width):
-                        min_value = 0
-                        max_value = 192
-                        r = int(x / tex_height * (max_value - min_value) + min_value)
-                        g = int(y / tex_width * (max_value - min_value) + min_value)
-                        tex_rgb[x, y, :] = [r, g, 128]
+                if self._recolor_pixel_ob:
+                    tex_grid = self.model.tex('grid')
+                    tex_height = tex_grid.height[0]
+                    tex_width = tex_grid.width[0]
+                    # MuJoCo 3.2.1 changed the attribute name from 'tex_rgb' to 'tex_data'.
+                    attr_name = 'tex_rgb' if hasattr(self.model, 'tex_rgb') else 'tex_data'
+                    tex_rgb = getattr(self.model, attr_name)[tex_grid.adr[0] : tex_grid.adr[0] + 3 * tex_height * tex_width]
+                    tex_rgb = tex_rgb.reshape(tex_height, tex_width, 3)
+                    for x in range(tex_height):
+                        for y in range(tex_width):
+                            min_value = 0
+                            max_value = 192
+                            r = int(x / tex_height * (max_value - min_value) + min_value)
+                            g = int(y / tex_width * (max_value - min_value) + min_value)
+                            tex_rgb[x, y, :] = [r, g, 128]
                 self._initialize_renderer()
             else:
                 ex_ob = self.get_ob()
@@ -175,7 +178,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             floor.set('pos', f'{center_x} {center_y} 0')
             floor.set('size', f'{size_x} {size_y} 0.2')
 
-            if self._ob_type == 'pixels':
+            if self._ob_type == 'pixels' and self._recolor_pixel_ob:
                 # Color wall.
                 wall = tree.find('.//material[@name="wall"]')
                 wall.set('rgba', '.6 .6 .6 1')
