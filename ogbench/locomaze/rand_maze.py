@@ -44,6 +44,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             add_noise_to_goal=True,
             reward_task_id=None,
             use_oracle_rep=False,
+            mark_goal=True,
             *args,
             **kwargs,
         ):
@@ -60,6 +61,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                     single-task mode with the specified task ID. The task ID must be either a valid task ID or 0, where
                     0 means using the default task.
                 use_oracle_rep: Whether to use oracle goal representations.
+                mark_goal: Whether to mark the goal in the environment.
                 *args: Additional arguments to pass to the parent locomotion environment.
                 **kwargs: Additional keyword arguments to pass to the parent locomotion environment.
             """
@@ -71,6 +73,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             self._add_noise_to_goal = add_noise_to_goal
             self._reward_task_id = reward_task_id
             self._use_oracle_rep = use_oracle_rep
+            self._mark_goal = mark_goal
             assert ob_type in ['states', 'pixels']
 
             # Define constants.
@@ -124,7 +127,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
 
             self.custom_renderer = None
             if self._ob_type == 'pixels':
-                self.observation_space = Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+                self.observation_space = Box(low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8)
 
                 # Manually color the floor to enable the agent to infer its position from the observation.
                 tex_grid = self.model.tex('grid')
@@ -191,8 +194,9 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                     tree.find('.//geom[@name="aux_1_geom"]').set('material', 'self_white')
                     tree.find('.//geom[@name="left_leg_geom"]').set('material', 'self_white')
                     tree.find('.//geom[@name="left_ankle_geom"]').set('material', 'self_white')
-            else:
-                # Only show the target for states-based observation.
+
+            # Mark the target position.
+            if self._mark_goal:
                 ET.SubElement(
                     worldbody,
                     'geom',
@@ -352,8 +356,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             if ob_type == 'states':
                 return super().get_ob()
             else:
-                frame = self.render()
-                return frame
+                return self.render()
 
         def get_oracle_rep(self):
             """Return the oracle goal representation (i.e., the goal position)."""
@@ -367,7 +370,7 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                     self.cur_goal_xy = self.add_noise(self.cur_goal_xy)
             else:
                 self.cur_goal_xy = goal_xy
-            if self._ob_type == 'states':
+            if self._mark_goal:
                 self.model.geom('target').pos[:2] = goal_xy
 
         def xy_to_ij(self, xy):
