@@ -454,8 +454,14 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                     and bfs_map[ni, nj] < bfs_map[subgoal_ij[0], subgoal_ij[1]]
                 ):
                     subgoal_ij = (ni, nj)
-            subgoal_xy = self.ij_to_xy(subgoal_ij)
-            return np.array(subgoal_xy), bfs_map
+
+            if subgoal_ij == goal_ij:
+                # If the subgoal cell contains the goal, return the exact goal position.
+                subgoal_xy = np.array(goal_xy)
+            else:
+                # Otherwise return the center of the subgoal cell.
+                subgoal_xy = np.array(self.ij_to_xy(subgoal_ij))
+            return subgoal_xy, bfs_map
 
         def xy_to_ij(self, xy):
             maze_unit = self._maze_unit
