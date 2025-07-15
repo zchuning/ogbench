@@ -220,12 +220,43 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
             for i in range(num_tasks):
                 maze_id = rng.integers(len(self._maze_maps))
                 maze_map = self._maze_maps[maze_id]
-                # Find empty cells in the maze
-                empty_cells = np.argwhere(maze_map == 0)
+                
+                empty_cells = []
+                vertex_cells = []
+                for i in range(maze_map.shape[0]):
+                    for j in range(maze_map.shape[1]):
+                        if maze_map[i, j] == 0:
+                            empty_cells.append((i, j))
+
+                            # Exclude hallway cells.
+                            if (
+                                maze_map[i - 1, j] == 0
+                                and maze_map[i + 1, j] == 0
+                                and maze_map[i, j - 1] == 1
+                                and maze_map[i, j + 1] == 1
+                            ):
+                                continue
+                            if (
+                                maze_map[i, j - 1] == 0
+                                and maze_map[i, j + 1] == 0
+                                and maze_map[i - 1, j] == 1
+                                and maze_map[i + 1, j] == 1
+                            ):
+                                continue
+                            vertex_cells.append((i, j))
+
+                # Sample initial cell.
                 if len(empty_cells) < 2:
                     raise ValueError(f'Not enough empty cells in maze {maze_id} for task {i}.')
-                init_cell, goal_cell = rng.choice(empty_cells, size=2, replace=False)
-                tasks.append([maze_id, tuple(init_cell), tuple(goal_cell)])
+                init_cell = empty_cells[rng.integers(len(empty_cells))]
+
+                # Sample goal cell.
+                valid_goals = [c for c in vertex_cells if c != init_cell]
+                if len(valid_goals) < 1:
+                    raise ValueError(f"Can't find valid goal cells in maze {maze_id} for task {i}. ")
+                goal_cell = valid_goals[rng.integers(len(valid_goals))]
+
+                tasks.append([maze_id, init_cell, goal_cell])
 
             task_infos = []
             for i, task in enumerate(tasks):
@@ -375,6 +406,56 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                 self.cur_goal_xy = goal_xy
             if self._mark_goal:
                 self.model.geom('target').pos[:2] = goal_xy
+
+        def get_oracle_subgoal(self, start_xy, goal_xy):
+            """Get the oracle subgoal for the agent.
+
+            If the goal is unreachable, it returns the current position as the subgoal.
+
+            Args:
+                start_xy: Starting position of the agent.
+                goal_xy: Goal position of the agent.
+            Returns:
+                A tuple of the oracle subgoal and the BFS map.
+            """
+            maze_map = self._maze_maps[self.cur_task_info["maze_id"]]
+            start_ij = self.xy_to_ij(start_xy)
+            goal_ij = self.xy_to_ij(goal_xy)
+
+            # Run BFS to find the next subgoal.
+            bfs_map = maze_map.copy()
+            for i in range(maze_map.shape[0]):
+                for j in range(maze_map.shape[1]):
+                    bfs_map[i][j] = -1
+
+            bfs_map[goal_ij[0], goal_ij[1]] = 0
+            queue = [goal_ij]
+            while len(queue) > 0:
+                i, j = queue.pop(0)
+                for di, dj in [(-1, 0), (0, -1), (1, 0), (0, 1)]:
+                    ni, nj = i + di, j + dj
+                    if (
+                        0 <= ni < maze_map.shape[0]
+                        and 0 <= nj < maze_map.shape[1]
+                        and maze_map[ni, nj] == 0
+                        and bfs_map[ni, nj] == -1
+                    ):
+                        bfs_map[ni][nj] = bfs_map[i][j] + 1
+                        queue.append((ni, nj))
+
+            # Find the subgoal that attains the minimum BFS value.
+            subgoal_ij = start_ij
+            for di, dj in [(-1, 0), (0, -1), (1, 0), (0, 1)]:
+                ni, nj = start_ij[0] + di, start_ij[1] + dj
+                if (
+                    0 <= ni < maze_map.shape[0]
+                    and 0 <= nj < maze_map.shape[1]
+                    and maze_map[ni, nj] == 0
+                    and bfs_map[ni, nj] < bfs_map[subgoal_ij[0], subgoal_ij[1]]
+                ):
+                    subgoal_ij = (ni, nj)
+            subgoal_xy = self.ij_to_xy(subgoal_ij)
+            return np.array(subgoal_xy), bfs_map
 
         def xy_to_ij(self, xy):
             maze_unit = self._maze_unit
