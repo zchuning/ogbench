@@ -138,7 +138,7 @@ def main(_):
 
             dataset['observations'].append(ob)
             dataset['actions'].append(action)
-            dataset['terminaions'].append(terminated)
+            dataset['terminations'].append(terminated)
             dataset["truncations"].append(truncated)
             dataset['qpos'].append(info['prev_qpos'])
             dataset['qvel'].append(info['prev_qvel'])
@@ -162,7 +162,7 @@ def main(_):
     for k, v in dataset.items():
         if 'observations' in k and v[0].dtype == np.uint8:
             dtype = np.uint8
-        elif k == 'terminals':
+        elif k == 'terminations' or k == 'truncations':
             dtype = bool
         else:
             dtype = np.float32
