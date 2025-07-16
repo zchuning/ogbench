@@ -30,6 +30,8 @@ def main(_):
         FLAGS.env_name,
         ob_type='pixels',
         max_episode_steps=100000, # Ensure never hit the max episode steps limit.
+        width=84,
+        height=84,
     )
 
     # Initialize oracle agent.
