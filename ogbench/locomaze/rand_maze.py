@@ -293,6 +293,12 @@ def make_rand_maze_env(loco_env_type, *args, **kwargs):
                     self.model.geom_size[gid] = np.zeros(3)
                     self.model.geom_contype[gid] = 0
                     self.model.geom_conaffinity[gid] = 0
+        
+        @property
+        def maze_map(self):
+            if self.cur_task_info is None:
+                raise ValueError('Attempting to access maze_map before resetting the environment.')
+            return self._maze_maps[self.cur_task_info['maze_id']]
 
         def reset(self, options=None, *args, **kwargs):
             if options is None:
