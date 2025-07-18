@@ -1,8 +1,6 @@
 import argparse
-import json
 import os
 import random
-import sys
 
 
 def generate_maze_prim(m):
