@@ -16,7 +16,7 @@ import ogbench.locomaze  # noqa
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('seed', 0, 'Random seed.')
-flags.DEFINE_string('env_name', 'pointmaze-random-v0', 'Environment name.')
+flags.DEFINE_string('env_name', 'pointmaze-random-medium-v0', 'Environment name.')
 flags.DEFINE_string('restore_path', 'experts/ant', 'Expert agent restore path.')
 flags.DEFINE_integer('restore_epoch', 400000, 'Expert agent restore epoch.')
 flags.DEFINE_string('save_path', None, 'Save path.')

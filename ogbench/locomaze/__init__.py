@@ -58,12 +58,22 @@ register(
 )
 
 register(
-    id='pointmaze-random-v0',
+    id='pointmaze-random-medium-v0',
     entry_point="ogbench.locomaze.rand_maze:make_rand_maze_env",
     max_episode_steps=1000,
     kwargs=dict(
         loco_env_type='point',
         maze_map_dir=os.path.abspath(os.path.join(_THIS_DIR, '../..', 'rand_mazes/medium')),
+    ),
+)
+
+register(
+    id='pointmaze-random-large-v0',
+    entry_point="ogbench.locomaze.rand_maze:make_rand_maze_env",
+    max_episode_steps=1000,
+    kwargs=dict(
+        loco_env_type='point',
+        maze_map_dir=os.path.abspath(os.path.join(_THIS_DIR, '../..', 'rand_mazes/large')),
     ),
 )
 
